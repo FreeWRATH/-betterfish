@@ -65,7 +65,12 @@ def load(paths, cache):
             for line in f:
                 if line.count("|") != 2:
                     continue
-                a, b, s, r = parse_line(line)
+                try:
+                    a, b, s, r = parse_line(line)
+                except (ValueError, IndexError):
+                    continue  # truncated line from an interrupted writer
+                if r not in (0.0, 0.5, 1.0) or len(a) > MAX_PIECES:
+                    continue
                 us.append(a + [PAD] * (MAX_PIECES - len(a)))
                 them.append(b + [PAD] * (MAX_PIECES - len(b)))
                 scores.append(s)
