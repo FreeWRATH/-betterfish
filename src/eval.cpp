@@ -3,6 +3,8 @@
 
 #include "eval.h"
 
+#include "nnue.h"
+
 #include <algorithm>
 #include <cstdlib>
 
@@ -142,7 +144,7 @@ void init_eval() {
         }
 }
 
-int evaluate(const Position& pos) {
+static int evaluate_classical(const Position& pos) {
     Score s[2];
     int phase = 0;
 
@@ -257,11 +259,16 @@ int evaluate(const Position& pos) {
         };
         if (npm(strong) - npm(strong ^ 1) <= 300) score /= 4;
     }
-    if (pos.insufficient_material()) return 0;
-
-    // Fade towards a draw as the fifty-move counter grows.
-    score = score * (200 - pos.halfmove) / 200;
-
     const int tempo = 12;
     return (pos.side == WHITE ? score : -score) + tempo;
+}
+
+int evaluate_hce(const Position& pos) { return evaluate_classical(pos); }
+
+int evaluate(const Position& pos) {
+    if (pos.insufficient_material()) return 0;
+    int score = NNUE::Loaded && NNUE::Enabled ? NNUE::evaluate(pos.accumulator(), pos.side) : evaluate_classical(pos);
+    // Fade towards a draw as the fifty-move counter grows.
+    score = score * (200 - pos.halfmove) / 200;
+    return std::clamp(score, -MATE_BOUND + 1, MATE_BOUND - 1);
 }

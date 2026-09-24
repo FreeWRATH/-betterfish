@@ -46,25 +46,33 @@ void init_zobrist() {
     CastleMask[60] &= ~(BK | BQ);
 }
 
+template <bool Acc>
 void Position::put_piece(int p, int sq) {
+    if (Acc) NNUE::add(accStack[accIdx], p, sq);
     bb[p] |= bit(sq);
     byColor[color_of(p)] |= bit(sq);
     all |= bit(sq);
     board[sq] = p;
     key ^= Z.psq[p][sq];
+    if (type_of(p) == PAWN) pawnKey ^= Z.psq[p][sq];
 }
 
+template <bool Acc>
 void Position::remove_piece(int sq) {
     int p = board[sq];
+    if (Acc) NNUE::sub(accStack[accIdx], p, sq);
     bb[p] ^= bit(sq);
     byColor[color_of(p)] ^= bit(sq);
     all ^= bit(sq);
     board[sq] = NO_PIECE;
     key ^= Z.psq[p][sq];
+    if (type_of(p) == PAWN) pawnKey ^= Z.psq[p][sq];
 }
 
+template <bool Acc>
 void Position::move_piece(int from, int to) {
     int p = board[from];
+    if (Acc) NNUE::move(accStack[accIdx], p, from, to);
     U64 fromTo = bit(from) | bit(to);
     bb[p] ^= fromTo;
     byColor[color_of(p)] ^= fromTo;
@@ -72,13 +80,14 @@ void Position::move_piece(int from, int to) {
     board[from] = NO_PIECE;
     board[to] = p;
     key ^= Z.psq[p][from] ^ Z.psq[p][to];
+    if (type_of(p) == PAWN) pawnKey ^= Z.psq[p][from] ^ Z.psq[p][to];
 }
 
 bool Position::set_fen(const std::string& fenStr) {
     std::memset(bb, 0, sizeof(bb));
     byColor[0] = byColor[1] = all = 0;
     for (int& b : board) b = NO_PIECE;
-    key = 0;
+    key = pawnKey = 0;
     gamePly = 0;
 
     std::istringstream ss(fenStr);
@@ -98,7 +107,7 @@ bool Position::set_fen(const std::string& fenStr) {
         } else {
             const char* p = std::strchr(PieceChars, c);
             if (!p || sq < 0 || sq > 63) return false;
-            put_piece(int(p - PieceChars), sq++);
+            put_piece<false>(int(p - PieceChars), sq++);
         }
     }
     if (popcount(bb[W_KING]) != 1 || popcount(bb[B_KING]) != 1) return false;
@@ -120,6 +129,7 @@ bool Position::set_fen(const std::string& fenStr) {
     key ^= Z.castle[castling];
     if (ep != NO_SQ) key ^= Z.epFile[file_of(ep)];
     if (side == BLACK) key ^= Z.side;
+    reset_accumulator();
     return true;
 }
 
@@ -195,9 +205,12 @@ bool Position::make(Move m) {
     u.ep = ep;
     u.halfmove = halfmove;
     u.key = key;
+    u.pawnKey = pawnKey;
     u.captured = NO_PIECE;
     keys[gamePly] = key;
     ++gamePly;
+    accStack[accIdx + 1] = accStack[accIdx];
+    ++accIdx;
 
     if (ep != NO_SQ) key ^= Z.epFile[file_of(ep)];
     ep = NO_SQ;
@@ -250,29 +263,31 @@ bool Position::make(Move m) {
 
 void Position::unmake(Move m) {
     --gamePly;
+    --accIdx;
     const Undo& u = stack[gamePly];
     side ^= 1;
     const int us = side;
     const int from = from_sq(m), to = to_sq(m), fl = move_flags(m);
 
     if (fl & PROMO) {
-        remove_piece(to);
-        put_piece(make_piece(us, PAWN), to);
+        remove_piece<false>(to);
+        put_piece<false>(make_piece(us, PAWN), to);
     }
-    move_piece(to, from);
+    move_piece<false>(to, from);
 
     if (fl == KING_CASTLE)
-        move_piece(us == WHITE ? 5 : 61, us == WHITE ? 7 : 63);
+        move_piece<false>(us == WHITE ? 5 : 61, us == WHITE ? 7 : 63);
     else if (fl == QUEEN_CASTLE)
-        move_piece(us == WHITE ? 3 : 59, us == WHITE ? 0 : 56);
+        move_piece<false>(us == WHITE ? 3 : 59, us == WHITE ? 0 : 56);
 
     if (u.captured != NO_PIECE)
-        put_piece(u.captured, fl == EP_CAPTURE ? to + (us == WHITE ? -8 : 8) : to);
+        put_piece<false>(u.captured, fl == EP_CAPTURE ? to + (us == WHITE ? -8 : 8) : to);
 
     castling = u.castling;
     ep = u.ep;
     halfmove = u.halfmove;
     key = u.key;
+    pawnKey = u.pawnKey;
     if (us == BLACK) --fullmove;
 }
 
@@ -284,6 +299,7 @@ void Position::make_null() {
     u.ep = ep;
     u.halfmove = halfmove;
     u.key = key;
+    u.pawnKey = pawnKey;
     keys[gamePly] = key;
     ++gamePly;
 
@@ -302,6 +318,7 @@ void Position::unmake_null() {
     ep = u.ep;
     halfmove = u.halfmove;
     key = u.key;
+    pawnKey = u.pawnKey;
 }
 
 bool Position::is_repetition() const {

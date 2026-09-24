@@ -3,6 +3,7 @@
 #include <string>
 
 #include "bitboard.h"
+#include "nnue.h"
 #include "types.h"
 
 struct MoveList {
@@ -21,6 +22,7 @@ struct Undo {
     int ep;
     int halfmove;
     U64 key;
+    U64 pawnKey;
 };
 
 class Position {
@@ -35,10 +37,23 @@ public:
     int halfmove;
     int fullmove;
     U64 key;
+    U64 pawnKey;  // hash of pawn placement only
 
     int gamePly = 0;
     Undo stack[MAX_GAME_PLY];
     U64 keys[MAX_GAME_PLY];
+
+    // NNUE accumulators: one per make() since the last reset_accumulator().
+    static constexpr int AccStackSize = MAX_PLY + 16;
+    NNUE::Accumulator accStack[AccStackSize];
+    int accIdx = 0;
+    const NNUE::Accumulator& accumulator() const { return accStack[accIdx]; }
+    // Recompute the accumulator from scratch and drop the incremental stack.
+    // Must be called when making moves outside of a search (game history).
+    void reset_accumulator() {
+        accIdx = 0;
+        NNUE::refresh(accStack[0], bb);
+    }
 
     static const char* StartFen;
 
@@ -70,9 +85,9 @@ public:
     Move parse_uci_move(const std::string& s) const;
 
 private:
-    void put_piece(int p, int sq);
-    void remove_piece(int sq);
-    void move_piece(int from, int to);
+    template <bool Acc = true> void put_piece(int p, int sq);
+    template <bool Acc = true> void remove_piece(int sq);
+    template <bool Acc = true> void move_piece(int from, int to);
 };
 
 void generate_moves(const Position& pos, MoveList& list, GenType type);

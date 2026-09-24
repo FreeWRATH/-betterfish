@@ -31,6 +31,9 @@ bool useTime = false;
 
 int LMR[64][64];
 
+constexpr int CorrSize = 16384;
+constexpr int CorrGrain = 256;
+
 int64_t elapsed_ms() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - startTime).count();
 }
@@ -53,8 +56,11 @@ struct Thread {
 
     int16_t history[2][64][64];
     std::vector<int16_t> contHist = std::vector<int16_t>(768 * 768);
+    int16_t captHist[12][64][6];
+    int corrHist[2][CorrSize];
     Move killers[MAX_PLY + 4][2];
     Move counters[12][64];
+    Move excluded[MAX_PLY + 4];
 
     Move pv[MAX_PLY + 2][MAX_PLY + 2];
     int pvLen[MAX_PLY + 2];
@@ -71,6 +77,25 @@ struct Thread {
         std::fill(contHist.begin(), contHist.end(), int16_t(0));
         std::fill(&killers[0][0], &killers[0][0] + (MAX_PLY + 4) * 2, NO_MOVE);
         std::fill(&counters[0][0], &counters[0][0] + 12 * 64, NO_MOVE);
+        std::fill(&captHist[0][0][0], &captHist[0][0][0] + 12 * 64 * 6, int16_t(0));
+        std::fill(&corrHist[0][0], &corrHist[0][0] + 2 * CorrSize, 0);
+        std::fill(excluded, excluded + MAX_PLY + 4, NO_MOVE);
+    }
+
+    int& corr_entry() { return corrHist[pos.side][pos.pawnKey & (CorrSize - 1)]; }
+    int corrected_eval(int raw) {
+        int v = raw + corr_entry() / CorrGrain;
+        return std::clamp(v, -MATE_BOUND + 1, MATE_BOUND - 1);
+    }
+    void update_correction(int raw, int best, int depth) {
+        int& e = corr_entry();
+        const int w = std::min(depth * depth + 2 * depth + 1, 128);
+        e = (e * (256 - w) + (best - raw) * CorrGrain * w) / 256;
+        e = std::clamp(e, -CorrGrain * 32, CorrGrain * 32);
+    }
+    int16_t& capt_hist(Move m) {
+        int victim = move_flags(m) == EP_CAPTURE ? PAWN : type_of(pos.board[to_sq(m)]);
+        return captHist[pos.board[from_sq(m)]][to_sq(m)][victim];
     }
 
     void add_node() { nodes.store(nodes.load(std::memory_order_relaxed) + 1, std::memory_order_relaxed); }
@@ -80,7 +105,7 @@ struct Thread {
     int search(int alpha, int beta, int depth, int ply, bool cutNode);
     int qsearch(int alpha, int beta, int ply);
     int quiet_score(Move m, int ply) const;
-    void score_moves(MoveList& list, Move ttMove, int ply) const;
+    void score_moves(MoveList& list, Move ttMove, int ply);
     void update_quiet_stats(Move best, int depth, int ply, const Move* quiets, int nq);
     void update_pv(int ply, Move m) {
         pv[ply][0] = m;
@@ -115,7 +140,7 @@ int Thread::quiet_score(Move m, int ply) const {
     return s;
 }
 
-void Thread::score_moves(MoveList& list, Move ttMove, int ply) const {
+void Thread::score_moves(MoveList& list, Move ttMove, int ply) {
     const Move counter = pieceStack[ply + 1] >= 0 ? counters[pieceStack[ply + 1]][toStack[ply + 1]] : NO_MOVE;
     for (int i = 0; i < list.size; ++i) {
         const Move m = list.moves[i];
@@ -127,7 +152,7 @@ void Thread::score_moves(MoveList& list, Move ttMove, int ply) const {
             int attacker = type_of(pos.board[from_sq(m)]);
             int mvvLva = SeeValue[victim] * 8 - attacker;
             if (is_promo(m)) mvvLva += SeeValue[promo_type(m)];
-            s = (see_ge(pos, m, -50) ? 1000000 : -1000000) + mvvLva;
+            s = (see_ge(pos, m, -50) ? 1000000 : -1000000) + mvvLva + capt_hist(m) / 8;
         } else if (is_promo(m)) {
             s = promo_type(m) == QUEEN ? 950000 : -2000000;
         } else if (m == killers[ply][0]) {
@@ -190,12 +215,13 @@ int Thread::qsearch(int alpha, int beta, int ply) {
          (tt.bound == BOUND_UPPER && ttScore <= alpha)))
         return ttScore;
 
-    int best, standPat;
+    int best, standPat, raw = VALUE_NONE;
     if (inCheck) {
         best = -INF;
         standPat = VALUE_NONE;
     } else {
-        standPat = ttHit && tt.eval != VALUE_NONE ? tt.eval : evaluate(pos);
+        raw = ttHit && tt.eval != VALUE_NONE ? tt.eval : evaluate(pos);
+        standPat = corrected_eval(raw);
         best = standPat;
         if (ttHit && (tt.bound & (ttScore > best ? BOUND_LOWER : BOUND_UPPER))) best = ttScore;
         if (best >= beta) return best;
@@ -240,7 +266,7 @@ int Thread::qsearch(int alpha, int beta, int ply) {
 
     if (inCheck && legal == 0) return -MATE + ply;
 
-    TT.store(pos.key, bestMove, score_to_tt(best, ply), standPat, 0, best >= beta ? BOUND_LOWER : BOUND_UPPER);
+    TT.store(pos.key, bestMove, score_to_tt(best, ply), raw, 0, best >= beta ? BOUND_LOWER : BOUND_UPPER);
     return best;
 }
 
@@ -266,8 +292,9 @@ int Thread::search(int alpha, int beta, int depth, int ply, bool cutNode) {
         if (alpha >= beta) return alpha;
     }
 
-    TTData tt;
-    const bool ttHit = TT.probe(pos.key, tt);
+    const Move excludedMove = excluded[ply];
+    TTData tt{};
+    const bool ttHit = !excludedMove && TT.probe(pos.key, tt);
     const Move ttMove = ttHit ? tt.move : NO_MOVE;
     const int ttScore = ttHit ? score_from_tt(tt.score, ply) : VALUE_NONE;
 
@@ -276,11 +303,16 @@ int Thread::search(int alpha, int beta, int depth, int ply, bool cutNode) {
          (tt.bound == BOUND_UPPER && ttScore <= alpha)))
         return ttScore;
 
-    int eval;
+    int eval, rawEval = VALUE_NONE;
     if (inCheck) {
         eval = evalStack[ply + 2] = VALUE_NONE;
+    } else if (excludedMove) {
+        // Same position as the parent singular search: reuse its evaluation.
+        rawEval = VALUE_NONE;
+        eval = evalStack[ply + 2];
     } else {
-        evalStack[ply + 2] = ttHit && tt.eval != VALUE_NONE ? tt.eval : evaluate(pos);
+        rawEval = ttHit && tt.eval != VALUE_NONE ? tt.eval : evaluate(pos);
+        evalStack[ply + 2] = corrected_eval(rawEval);
         eval = evalStack[ply + 2];
         // A TT score is a better estimate than the static eval when its bound agrees.
         if (ttHit && std::abs(ttScore) < MATE_BOUND && (tt.bound & (ttScore > eval ? BOUND_LOWER : BOUND_UPPER)))
@@ -297,7 +329,7 @@ int Thread::search(int alpha, int beta, int depth, int ply, bool cutNode) {
 
     killers[ply + 1][0] = killers[ply + 1][1] = NO_MOVE;
 
-    if (!pvNode && !inCheck) {
+    if (!pvNode && !inCheck && !excludedMove) {
         // Reverse futility pruning
         if (depth <= 8 && std::abs(eval) < MATE_BOUND && eval - 75 * (depth - improving) >= beta) return eval;
 
@@ -329,7 +361,8 @@ int Thread::search(int alpha, int beta, int depth, int ply, bool cutNode) {
     score_moves(list, ttMove, ply);
 
     Move quiets[64];
-    int nq = 0;
+    int16_t* captSlots[32];
+    int nq = 0, nc = 0;
     int bestScore = -INF;
     Move bestMove = NO_MOVE;
     int legal = 0, quietsSeen = 0;
@@ -337,10 +370,11 @@ int Thread::search(int alpha, int beta, int depth, int ply, bool cutNode) {
 
     for (int i = 0; i < list.size; ++i) {
         const Move m = pick_move(list, i);
+        if (m == excludedMove) continue;
         const bool quiet = is_quiet(m);
         if (quiet && skipQuiets) continue;
 
-        const int hist = quiet ? quiet_score(m, ply) : 0;
+        const int hist = quiet ? quiet_score(m, ply) : capt_hist(m);
 
         if (!root && bestScore > -MATE_BOUND) {
             const int lmrDepth = std::max(0, depth - LMR[std::min(depth, 63)][std::min(legal + 1, 63)]);
@@ -364,8 +398,29 @@ int Thread::search(int alpha, int beta, int depth, int ply, bool cutNode) {
             }
         }
 
+        // Singular extension: if every alternative to the TT move fails well
+        // below the TT score, the TT move is forced and deserves more depth.
+        int extension = 0;
+        if (!root && m == ttMove && depth >= 7 && ply < 2 * rootDepth && (tt.bound & BOUND_LOWER) &&
+            tt.depth >= depth - 3 && std::abs(ttScore) < MATE_BOUND) {
+            const int sBeta = ttScore - 2 * depth;
+            excluded[ply] = m;
+            const int v = search(sBeta - 1, sBeta, (depth - 1) / 2, ply, cutNode);
+            excluded[ply] = NO_MOVE;
+            if (stopFlag.load(std::memory_order_relaxed)) return 0;
+            if (v < sBeta)
+                extension = !pvNode && v < sBeta - 25 ? 2 : 1;
+            else if (sBeta >= beta)
+                return sBeta;  // multi-cut: several moves beat beta
+            else if (ttScore >= beta)
+                extension = -1;
+        }
+
+        // Remember the capture's history slot while the board still has the mover.
+        int16_t* captSlot = is_capture(m) ? &capt_hist(m) : nullptr;
         if (!pos.make(m)) continue;
         ++legal;
+        if (captSlot && nc < 32) captSlots[nc++] = captSlot;
         if (quiet) {
             ++quietsSeen;
             if (nq < 64) quiets[nq++] = m;
@@ -374,7 +429,8 @@ int Thread::search(int alpha, int beta, int depth, int ply, bool cutNode) {
         toStack[ply + 2] = to_sq(m);
 
         const bool givesCheck = pos.in_check();
-        const int newDepth = depth - 1 + (givesCheck && ply < 2 * rootDepth ? 1 : 0);
+        if (!extension && givesCheck && ply < 2 * rootDepth) extension = 1;
+        const int newDepth = depth - 1 + extension;
 
         int v;
         if (legal == 1) {
@@ -391,7 +447,9 @@ int Thread::search(int alpha, int beta, int depth, int ply, bool cutNode) {
                     R -= hist / 8000;
                     if (m == killers[ply][0] || m == killers[ply][1]) --R;
                 }
-                R = std::clamp(R, 0, newDepth - 1);
+                else
+                    R -= hist / 6000;
+                R = std::clamp(R, 0, std::max(newDepth - 1, 0));
             }
             v = -search(-alpha - 1, -alpha, newDepth - R, ply + 1, true);
             if (v > alpha && R > 0) v = -search(-alpha - 1, -alpha, newDepth, ply + 1, !cutNode);
@@ -412,12 +470,32 @@ int Thread::search(int alpha, int beta, int depth, int ply, bool cutNode) {
         }
     }
 
-    if (legal == 0) return inCheck ? -MATE + ply : 0;
+    if (legal == 0) return excludedMove ? alpha : inCheck ? -MATE + ply : 0;
 
-    if (bestScore >= beta && is_quiet(bestMove)) update_quiet_stats(bestMove, depth, ply, quiets, nq);
+    if (bestScore >= beta) {
+        const int bonus = std::min(150 * depth, 1600);
+        if (is_quiet(bestMove)) {
+            update_quiet_stats(bestMove, depth, ply, quiets, nq);
+        }
+        // Captures that were tried and failed get a malus; a cutting capture
+        // (always the last one recorded) gets a bonus.
+        for (int i = 0; i < nc; ++i) {
+            const bool isBest = !is_quiet(bestMove) && is_capture(bestMove) && i == nc - 1;
+            update_history(*captSlots[i], isBest ? bonus : -bonus);
+        }
+    }
+
+    if (excludedMove) return bestScore;
 
     const int bound = bestScore >= beta ? BOUND_LOWER : bestMove != NO_MOVE ? BOUND_EXACT : BOUND_UPPER;
-    TT.store(pos.key, bestMove, score_to_tt(bestScore, ply), evalStack[ply + 2], depth, bound);
+
+    // Learn how far the static eval was off in positions with this pawn structure.
+    if (!inCheck && (bestMove == NO_MOVE || is_quiet(bestMove)) &&
+        !(bound == BOUND_LOWER && bestScore <= evalStack[ply + 2]) &&
+        !(bound == BOUND_UPPER && bestScore >= evalStack[ply + 2]))
+        update_correction(evalStack[ply + 2], bestScore, depth);
+
+    TT.store(pos.key, bestMove, score_to_tt(bestScore, ply), rawEval, depth, bound);
     return bestScore;
 }
 
@@ -502,6 +580,7 @@ void Thread::iterative_deepening() {
         prevBest = bestMove;
 
         if (limits.nodes && total_nodes() >= limits.nodes) break;
+        if (limits.softNodes && total_nodes() >= limits.softNodes) break;
         if (useTime && !pondering.load()) {
             static const double scale[5] = {2.0, 1.4, 1.1, 0.9, 0.8};
             if (elapsed_ms() >= int64_t(softLimit * scale[stability])) break;
@@ -607,6 +686,18 @@ uint64_t bench_search(const Position& pos, int depth) {
     start_search(pos, lim, false);
     Silent = prev;
     return threads[0]->nodes.load();
+}
+
+Move datagen_search(const Position& pos, uint64_t softNodes, int& score) {
+    SearchLimits lim;
+    lim.softNodes = softNodes;
+    lim.nodes = softNodes * 8;
+    bool prev = Silent;
+    Silent = true;
+    start_search(pos, lim, false);
+    Silent = prev;
+    score = threads[0]->bestScore;
+    return threads[0]->bestMove;
 }
 
 }  // namespace Search

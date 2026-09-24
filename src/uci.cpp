@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <chrono>
+#include <cstring>
 #include <iostream>
 #include <memory>
 #include <sstream>
@@ -7,7 +8,9 @@
 #include <thread>
 #include <vector>
 
+#include "datagen.h"
 #include "eval.h"
+#include "nnue.h"
 #include "position.h"
 #include "search.h"
 #include "tt.h"
@@ -60,6 +63,24 @@ const PerftCase PerftSuite[] = {
     {"r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10", 4, 3894594},
 };
 
+// Walks the move tree and checks that the incrementally updated NNUE
+// accumulator always equals a from-scratch refresh.
+bool accumulator_check(Position& pos, int depth) {
+    NNUE::Accumulator fresh;
+    NNUE::refresh(fresh, pos.bb);
+    if (std::memcmp(&fresh, &pos.accumulator(), sizeof(fresh)) != 0) return false;
+    if (depth == 0) return true;
+    MoveList list;
+    generate_moves(pos, list, GEN_ALL);
+    for (int i = 0; i < list.size; ++i) {
+        if (!pos.make(list.moves[i])) continue;
+        bool ok = accumulator_check(pos, depth - 1);
+        pos.unmake(list.moves[i]);
+        if (!ok) return false;
+    }
+    return true;
+}
+
 bool perft_test() {
     bool ok = true;
     Position pos;
@@ -71,6 +92,17 @@ bool perft_test() {
         std::cout << (pass ? "PASS " : "FAIL ") << c.fen << " depth " << c.depth << ": " << n << " (expected "
                   << c.nodes << ")" << std::endl;
     }
+    // Use random weights so every feature contributes.
+    NNUE::Net saved = NNUE::net;
+    uint32_t r = 12345;
+    for (auto& w : NNUE::net.ftW) w = int16_t(((r = r * 1103515245 + 12345) >> 16) % 201 - 100);
+    for (const auto& c : PerftSuite) {
+        pos.set_fen(c.fen);
+        bool pass = accumulator_check(pos, 3);
+        ok &= pass;
+        std::cout << (pass ? "PASS " : "FAIL ") << "accumulator " << c.fen << std::endl;
+    }
+    NNUE::net = saved;
     std::cout << (ok ? "All perft tests passed" : "PERFT TESTS FAILED") << std::endl;
     return ok;
 }
@@ -142,6 +174,7 @@ void parse_position(Position& pos, std::istringstream& is) {
             pos.set_fen(f);
         }
     }
+    pos.reset_accumulator();
 }
 
 SearchLimits parse_go(std::istringstream& is) {
@@ -171,6 +204,7 @@ int main(int argc, char** argv) {
     init_eval();
     TT.resize(64);
     Search::init();
+    NNUE::load_embedded();
 
     auto pos = std::make_unique<Position>();
     pos->set_fen(Position::StartFen);
@@ -203,6 +237,8 @@ int main(int argc, char** argv) {
                       << "option name Move Overhead type spin default 30 min 0 max 5000\n"
                       << "option name Ponder type check default false\n"
                       << "option name Clear Hash type button\n"
+                      << "option name Use NNUE type check default true\n"
+                      << "option name EvalFile type string default <embedded>\n"
                       << "uciok" << std::endl;
         } else if (cmd == "isready") {
             std::cout << "readyok" << std::endl;
@@ -219,6 +255,13 @@ int main(int argc, char** argv) {
             else if (name == "Threads") Search::set_threads(std::stoi(value));
             else if (name == "Move Overhead") Search::MoveOverhead = std::stoi(value);
             else if (name == "Clear Hash") Search::clear();
+            else if (name == "Use NNUE") NNUE::Enabled = value == "true";
+            else if (name == "EvalFile") {
+                bool ok = value == "<embedded>" ? NNUE::load_embedded() : NNUE::load_file(value);
+                std::cout << "info string " << (ok ? "loaded" : "failed to load") << " network " << value
+                          << std::endl;
+            }
+            pos->reset_accumulator();
         } else if (cmd == "position") {
             stop_search();
             parse_position(*pos, is);
@@ -238,7 +281,17 @@ int main(int argc, char** argv) {
         } else if (cmd == "d") {
             std::cout << pos->pretty() << std::endl;
         } else if (cmd == "eval") {
-            std::cout << "Static eval (side to move): " << evaluate(*pos) << " cp" << std::endl;
+            std::cout << "Static eval (side to move): " << evaluate(*pos) << " cp"
+                      << (NNUE::Loaded && NNUE::Enabled ? " (NNUE)" : " (classical)")
+                      << "\nClassical eval: " << evaluate_hce(*pos) << " cp" << std::endl;
+        } else if (cmd == "datagen") {
+            // datagen <games> <nodes> <file> [seed]
+            int games = 100;
+            uint64_t nodes = 5000, seed = uint64_t(std::chrono::steady_clock::now().time_since_epoch().count());
+            std::string file = "data.txt";
+            is >> games >> nodes >> file >> seed;
+            TT.resize(16);
+            datagen(games, nodes, file, seed);
         } else if (cmd == "perft") {
             int depth = 1;
             is >> depth;

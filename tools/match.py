@@ -100,6 +100,22 @@ def elo(score):
     return -400 * math.log10(1 / score - 1)
 
 
+def elo_error(w, d, l):
+    """95% confidence half-width of the Elo estimate (trinomial model)."""
+    n = w + d + l
+    s = (w + 0.5 * d) / n
+    var = (w * (1 - s) ** 2 + d * (0.5 - s) ** 2 + l * s ** 2) / n
+    margin = 1.96 * math.sqrt(var / n)
+    return (elo(min(s + margin, 0.999)) - elo(max(s - margin, 0.001))) / 2
+
+
+def load_openings(path):
+    if path:
+        with open(path) as f:
+            return [line.strip() for line in f if line.strip()]
+    return OPENINGS
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("engine")
@@ -109,12 +125,16 @@ def main():
     p.add_argument("--concurrency", type=int, default=2)
     p.add_argument("--option", action="append", help="Name=value for the first engine")
     p.add_argument("--opp-option", action="append", help="Name=value for the opponent")
+    p.add_argument("--openings", help="file with one opening (UCI moves) per line; "
+                   "each is played twice with colors reversed")
+    p.add_argument("--seed", type=int, default=1)
     args = p.parse_args()
 
-    random.seed(1)
+    openings = load_openings(args.openings)
+    random.Random(args.seed).shuffle(openings)
     jobs = []
     for i in range(args.games):
-        opening = OPENINGS[(i // 2) % len(OPENINGS)]
+        opening = openings[(i // 2) % len(openings)]
         jobs.append((opening, i % 2 == 0))
 
     w = d = l = 0
@@ -131,7 +151,7 @@ def main():
             n = w + d + l
             sc = (w + 0.5 * d) / n
             print(f"Game {n}/{args.games}: {RESULT_NAMES[s]:5} ({len(board.move_stack)} plies)  "
-                  f"+{w} ={d} -{l}  score {sc:.3f}  elo {elo(sc):+.0f}", flush=True)
+                  f"+{w} ={d} -{l}  score {sc:.3f}  elo {elo(sc):+.0f} +/- {elo_error(w, d, l):.0f}", flush=True)
 
 
 if __name__ == "__main__":
