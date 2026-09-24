@@ -1,3 +1,4 @@
 *.o
 /betterfish
 /betterfish.exe
+__pycache__/
