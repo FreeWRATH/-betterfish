@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: make -j2 ARCH=x86-64-v2
+      - name: Perft
+        run: ./betterfish perfttest
+      - name: Bench
+        run: ./betterfish bench 10
+      - name: UCI smoke test
+        run: |
+          out=$(printf 'uci\nisready\nposition startpos moves e2e4\ngo depth 8\n' | ./betterfish)
+          echo "$out" | tail -3
+          echo "$out" | grep -q '^bestmove [a-h][1-8][a-h][1-8]'
