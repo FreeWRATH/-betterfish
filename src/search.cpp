@@ -582,8 +582,10 @@ void Thread::iterative_deepening() {
         if (limits.nodes && total_nodes() >= limits.nodes) break;
         if (limits.softNodes && total_nodes() >= limits.softNodes) break;
         if (useTime && !pondering.load()) {
-            static const double scale[5] = {2.0, 1.4, 1.1, 0.9, 0.8};
-            if (elapsed_ms() >= int64_t(softLimit * scale[stability])) break;
+            static const double scale[5] = {1.8, 1.3, 1.0, 0.85, 0.75};
+            // The next iteration typically costs as much as all previous
+            // ones, so don't start it past half the budget.
+            if (elapsed_ms() >= int64_t(softLimit * scale[stability] / 2)) break;
         }
         // A found mate won't get shorter by searching much deeper.
         if (std::abs(score) >= MATE_BOUND && depth >= 2 * (MATE - std::abs(score)) + 4 && !limits.infinite) break;
@@ -603,10 +605,13 @@ void setup_time(const Position& pos) {
     if (time < 0) return;
 
     useTime = true;
-    const int mtg = limits.movestogo > 0 ? std::min(limits.movestogo, 40) : 25;
+    const int mtg = limits.movestogo > 0 ? std::min(limits.movestogo, 40) : 30;
     const int64_t avail = std::max<int64_t>(1, time - overhead);
     softLimit = avail / mtg + inc * 3 / 4;
-    hardLimit = std::min(softLimit * 4, avail * 7 / 10);
+    // Never plan to use more than a fraction of the clock on one move, even
+    // with a large increment, and cap overruns of the soft limit.
+    const int64_t maxFraction = limits.movestogo == 1 ? avail * 7 / 10 : avail / 4;
+    hardLimit = std::min(softLimit * 3, maxFraction);
     hardLimit = std::max<int64_t>(hardLimit, 1);
     softLimit = std::min(softLimit, hardLimit);
 }

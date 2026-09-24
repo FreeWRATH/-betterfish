@@ -167,6 +167,8 @@ void parse_position(Position& pos, std::istringstream& is) {
             std::cout << "info string illegal move " << token << std::endl;
             break;
         }
+        // The accumulator stack only has room for a search's worth of plies.
+        pos.reset_accumulator();
         // Keep the undo stack from overflowing in very long games; the
         // history needed for repetition detection is bounded by halfmove.
         if (pos.gamePly > MAX_GAME_PLY - MAX_PLY - 8 && pos.halfmove == 0) {
@@ -174,7 +176,6 @@ void parse_position(Position& pos, std::istringstream& is) {
             pos.set_fen(f);
         }
     }
-    pos.reset_accumulator();
 }
 
 SearchLimits parse_go(std::istringstream& is) {
