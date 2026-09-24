@@ -1,6 +1,7 @@
 #pragma once
 
-// NNUE evaluation: (768 -> HL) x 2 perspectives -> SCReLU -> 1.
+// NNUE evaluation: (768 -> HL) x 2 perspectives -> SCReLU -> 1, with the
+// output layer selected by the number of pieces on the board.
 // The first layer is kept up to date incrementally as pieces move.
 
 #include <cstdint>
@@ -15,6 +16,9 @@ constexpr int HL = 256;
 constexpr int QA = 255;
 constexpr int QB = 64;
 constexpr int Scale = 400;
+constexpr int OutputBuckets = 8;
+
+inline int output_bucket(int pieceCount) { return (pieceCount - 2) / 4; }
 
 struct alignas(64) Accumulator {
     int16_t v[2][HL];
@@ -23,8 +27,8 @@ struct alignas(64) Accumulator {
 struct Net {
     alignas(64) int16_t ftW[Inputs * HL];
     alignas(64) int16_t ftB[HL];
-    alignas(64) int16_t outW[2 * HL];
-    int16_t outB;
+    alignas(64) int16_t outW[OutputBuckets][2 * HL];
+    int16_t outB[OutputBuckets];
 };
 
 extern Net net;
@@ -70,6 +74,6 @@ inline void move(Accumulator& a, int piece, int from, int to) {
 void refresh(Accumulator& a, const U64 bb[12]);
 
 // Evaluation in centipawns from the side to move's point of view.
-int evaluate(const Accumulator& a, int stm);
+int evaluate(const Accumulator& a, int stm, int pieceCount);
 
 }  // namespace NNUE

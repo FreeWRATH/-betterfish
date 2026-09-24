@@ -30,7 +30,7 @@ bool Enabled = true;
 
 namespace {
 
-constexpr size_t NetBytes = sizeof(int16_t) * (Inputs * HL + HL + 2 * HL + 1);
+constexpr size_t NetBytes = sizeof(int16_t) * (Inputs * HL + HL + OutputBuckets * (2 * HL + 1));
 
 bool load_bytes(const unsigned char* data, size_t size) {
     if (size < NetBytes) return false;
@@ -40,8 +40,8 @@ bool load_bytes(const unsigned char* data, size_t size) {
     std::memcpy(net.ftB, p, sizeof(net.ftB));
     p += HL;
     std::memcpy(net.outW, p, sizeof(net.outW));
-    p += 2 * HL;
-    net.outB = *p;
+    p += OutputBuckets * 2 * HL;
+    std::memcpy(net.outB, p, sizeof(net.outB));
     Loaded = true;
     return true;
 }
@@ -71,19 +71,21 @@ void refresh(Accumulator& a, const U64 bb[12]) {
     }
 }
 
-int evaluate(const Accumulator& a, int stm) {
+int evaluate(const Accumulator& a, int stm, int pieceCount) {
+    const int bucket = output_bucket(pieceCount);
+    const int16_t* w = net.outW[bucket];
     const int16_t* us = a.v[stm];
     const int16_t* them = a.v[stm ^ 1];
     int32_t sum = 0;
     for (int i = 0; i < HL; ++i) {
         int32_t v = std::clamp<int32_t>(us[i], 0, QA);
-        sum += (v * net.outW[i]) * v;
+        sum += (v * w[i]) * v;
     }
     for (int i = 0; i < HL; ++i) {
         int32_t v = std::clamp<int32_t>(them[i], 0, QA);
-        sum += (v * net.outW[HL + i]) * v;
+        sum += (v * w[HL + i]) * v;
     }
-    return (sum / QA + net.outB) * Scale / (QA * QB);
+    return (sum / QA + net.outB[bucket]) * Scale / (QA * QB);
 }
 
 }  // namespace NNUE

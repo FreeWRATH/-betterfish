@@ -5,7 +5,8 @@
 
 Architecture (must match src/nnue.h):
     768 inputs -> HL (shared weights, one accumulator per perspective)
-    concat(side to move, other side) -> SCReLU -> 1 output
+    concat(side to move, other side) -> SCReLU -> 1 output, where the output
+    layer is one of 8 chosen by the number of pieces on the board
 
 Input lines: "<fen> | <cp score, White's view> | <result for White>".
 Requires numpy and torch.
@@ -13,7 +14,6 @@ Requires numpy and torch.
 
 import argparse
 import os
-import struct
 import time
 
 import numpy as np
@@ -24,6 +24,7 @@ HL = 256
 QA = 255
 QB = 64
 SCALE = 400
+BUCKETS = 8
 PAD = 768
 MAX_PIECES = 32
 PIECES = "PNBRQKpnbrqk"
@@ -83,15 +84,16 @@ class Net(nn.Module):
         super().__init__()
         self.ft = nn.EmbeddingBag(PAD + 1, HL, mode="sum", padding_idx=PAD)
         self.ft_bias = nn.Parameter(torch.zeros(HL))
-        self.out = nn.Linear(2 * HL, 1)
+        self.out = nn.Linear(2 * HL, BUCKETS)
         nn.init.normal_(self.ft.weight, std=0.1)
         with torch.no_grad():
             self.ft.weight[PAD].zero_()
 
-    def forward(self, us, them):
+    def forward(self, us, them, bucket):
         a = torch.clamp(self.ft(us) + self.ft_bias, 0, 1) ** 2
         b = torch.clamp(self.ft(them) + self.ft_bias, 0, 1) ** 2
-        return self.out(torch.cat([a, b], dim=1)).squeeze(1)
+        out = self.out(torch.cat([a, b], dim=1))
+        return out.gather(1, bucket.unsqueeze(1)).squeeze(1)
 
     def clip(self):
         limit = 127 / QB
@@ -103,14 +105,14 @@ class Net(nn.Module):
 def export(net, path):
     ftw = net.ft.weight.detach()[:PAD].numpy()  # [768, HL]
     ftb = net.ft_bias.detach().numpy()
-    ow = net.out.weight.detach().numpy().reshape(-1)
-    ob = float(net.out.bias.detach()[0])
+    ow = net.out.weight.detach().numpy()  # [BUCKETS, 2 * HL]
+    ob = net.out.bias.detach().numpy()
     q = lambda x, s: np.clip(np.round(x * s), -32768, 32767).astype("<i2")
     with open(path, "wb") as f:
         f.write(q(ftw, QA).tobytes())
         f.write(q(ftb, QA).tobytes())
         f.write(q(ow, QB).tobytes())
-        f.write(struct.pack("<h", int(np.clip(round(ob * QA * QB), -32768, 32767))))
+        f.write(q(ob, QA * QB).tobytes())
 
 
 def main():
@@ -135,6 +137,7 @@ def main():
 
     us = torch.from_numpy(us.astype(np.int64))
     them = torch.from_numpy(them.astype(np.int64))
+    bucket = ((us != PAD).sum(dim=1) - 2) // 4
     target = (1 - args.wdl) * torch.sigmoid(torch.from_numpy(score) / 400) + args.wdl * torch.from_numpy(result)
 
     perm = torch.randperm(n)
@@ -146,7 +149,7 @@ def main():
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epochs, eta_min=args.lr * 0.02)
 
     def loss_on(idx):
-        pred = torch.sigmoid(net(us[idx], them[idx]) * SCALE / 400)
+        pred = torch.sigmoid(net(us[idx], them[idx], bucket[idx]) * SCALE / 400)
         return torch.mean((pred - target[idx]) ** 2)
 
     for epoch in range(args.epochs):
