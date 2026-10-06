@@ -5,7 +5,7 @@ npages = int(re.search(r"Pages:\s+(\d+)", subprocess.run(["pdfinfo", pdf], captu
 pages = [subprocess.run(["pdftotext", "-f", str(i), "-l", str(i), "-layout", pdf, "-"], capture_output=True, text=True).stdout for i in range(1, npages + 1)]
 z = zipfile.ZipFile(docx); xml = z.read("word/document.xml").decode("utf8"); others = {n: z.read(n) for n in z.namelist() if n != "word/document.xml"}; z.close()
 # koppen in volgorde
-extra = ["Literatuurlijst", "Bijlage A: Bronnenbeoordeling volgens de CRAAP-methode", "Bijlage B: Python-code voor figuur 1", "Bijlage C: Ingevulde Checklist Rapporteren"]
+extra = ["Literatuurlijst", "Bijlage A: Bronnenbeoordeling volgens de CRAAP-methode", "Bijlage B: Ingevulde Checklist Rapporteren"]
 heads = []
 for m in re.finditer(r"<w:p>(.*?)</w:p>", xml, re.S):
     p = m.group(1)

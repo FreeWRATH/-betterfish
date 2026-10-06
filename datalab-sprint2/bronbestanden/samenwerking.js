@@ -24,8 +24,8 @@ function kop(t) { return new Paragraph({ children: [new TextRun({ text: t, bold:
 
   out.push(kop("Expertises van de groepsleden"));
   out.push(table(["Naam", "Expertise", "Rol in sprint 2"], [
-    ["Jemairo van Rey", "Data-analyse", "Dataset CBS zoeken, grafiek in Python, hoofdstuk 3"],
-    ["Redouan Afkir", "Programmeren", "Code en versiebeheer, hoofdstuk 5 (advies en data), checklist"],
+    ["Jemairo van Rey", "Data-analyse", "Dataset CBS zoeken, grafiek in Excel, hoofdstuk 3"],
+    ["Redouan Afkir", "Programmeren", "Excel-bestanden en versiebeheer, hoofdstuk 5 (advies en data), checklist"],
     ["Mohamed Badr el Din", "Datavisualisatie", "Opmaak rapport, tabellen en figuren, hoofdstuk 4"],
     ["Joshua Ferreira", "Business & communicatie", "Hoofdstuk 2 en 6, bronnenbeoordeling (CRAAP), APA, presentatie"],
   ], [2600, 2600, 4432], { firstBold: true }));
@@ -37,7 +37,7 @@ function kop(t) { return new Paragraph({ children: [new TextRun({ text: t, bold:
     ["WhatsApp-groep", "Snelle communicatie, afwezigheid melden, korte vragen", "Reageren binnen 24 uur; bij urgentie (deadline binnen 48 uur) binnen 2 uur op lesdagen"],
     ["Microsoft Teams (klasteam)", "Communicatie met de coach, online overleg buiten de les", "Eén vast online overlegmoment per week van 30 minuten op maandag 19:00 uur"],
     ["OneDrive / gedeelde map", "Alle documenten (rapport, overeenkomst, reflectie, bronnen)", "Alleen in de gedeelde map werken; bestandsnaam met versie en datum (bijv. Rapport_v3_2026-10-06)"],
-    ["Google Colab / GitHub", "Python-code en datasets", "Code in één gedeeld notebook; elke wijziging met een korte beschrijving"],
+    ["Excel (in de gedeelde map)", "Datasets en grafieken", "Eén Excel-bestand per dataset met de bron erbij; wijzigingen melden in de WhatsApp-groep"],
     ["Brightspace", "Inleveren van de eindproducten", "Eén groepslid (Joshua) levert in, na akkoord van iedereen in de WhatsApp-groep"],
   ], [2200, 3300, 4132], { firstBold: true }));
 
@@ -51,13 +51,13 @@ function kop(t) { return new Paragraph({ children: [new TextRun({ text: t, bold:
   out.push(P("**Afspraken aanwezigheid**"));
   out.push(P("Iedereen is op tijd aanwezig tijdens de ingeplande DataLab-momenten en het wekelijkse online overleg, tenzij iemand een geldige reden heeft om afwezig te zijn. Bij afwezigheid laat je dit minimaal 24 uur van tevoren weten in de WhatsApp-groep (bij ziekte: vóór 9:00 uur op de dag zelf) en spreek je af wie jouw taak van die dag overneemt of wanneer je het inhaalt. Tijdens de bijeenkomsten verwachten we dat iedereen actief meewerkt, initiatief toont, naar elkaar luistert en zich bezighoudt met het project; telefoons blijven weg tijdens het overleg."));
   out.push(P("**Afspraken documenten delen**"));
-  out.push(P("We bewaren en delen al onze documenten in één gedeelde OneDrive-map, zodat iedereen altijd bij de meest recente bestanden kan. We werken zoveel mogelijk in gedeelde documenten om te voorkomen dat er verschillende versies ontstaan. Bestanden krijgen een duidelijke naam met versienummer en datum. Elke bron die iemand gebruikt, wordt direct toegevoegd aan de gedeelde bronnenlijst met de APA-vermelding en de CRAAP-beoordeling, zodat we dat niet op het laatst hoeven te doen (ons verbeterpunt uit sprint 1). Code staat in één gedeeld Colab-notebook."));
+  out.push(P("We bewaren en delen al onze documenten in één gedeelde OneDrive-map, zodat iedereen altijd bij de meest recente bestanden kan. We werken zoveel mogelijk in gedeelde documenten om te voorkomen dat er verschillende versies ontstaan. Bestanden krijgen een duidelijke naam met versienummer en datum. Elke bron die iemand gebruikt, wordt direct toegevoegd aan de gedeelde bronnenlijst met de APA-vermelding en de CRAAP-beoordeling, zodat we dat niet op het laatst hoeven te doen (ons verbeterpunt uit sprint 1). Datasets en grafieken staan in Excel-bestanden in dezelfde map."));
   out.push(P("**Taakverdeling en controle**"));
   out.push(P("Taken worden elke maandag verdeeld op basis van ieders expertise (zie tabel) en vastgelegd in de WhatsApp-groep met naam en deadline. Elk onderdeel van het rapport wordt door minimaal één ander groepslid nagelezen voordat het definitief is; de nalezer controleert op inhoud, spelling en bronvermelding. Joshua bewaakt de planning en de deadlines."));
   out.push(P("**Procedure bij niet nakomen afspraken**"));
   out.push(P("Als iemand een afspraak niet nakomt, bespreken we dit eerst met die persoon en krijgt diegene een waarschuwing. Gebeurt het daarna opnieuw, dan krijgt diegene een tweede waarschuwing en maken we duidelijke afspraken over wat er moet verbeteren, met een datum waarop we dat opnieuw bekijken. Als afspraken daarna nog steeds niet worden nagekomen, bespreken we dit als groep en nemen we contact op met de coach. Iedereen blijft zelf verantwoordelijk voor zijn of haar afgesproken taken en deadlines."));
   out.push(P("**Overige afspraken**"));
-  out.push(P("Generatieve AI (zoals ChatGPT of Claude) mogen we gebruiken voor het verbeteren van teksten, het controleren van code en het uitleggen van begrippen, maar nooit als bron: elk feit moet terug te vinden zijn in een echte bron die we zelf hebben gecontroleerd. In de reflectie beschrijven we hoe we GenAI hebben gebruikt. Feedback geven we eerlijk en respectvol, gericht op het werk en niet op de persoon."));
+  out.push(P("Generatieve AI (zoals ChatGPT of Claude) mogen we gebruiken voor het verbeteren van teksten en het uitleggen van begrippen, maar nooit als bron: elk feit moet terug te vinden zijn in een echte bron die we zelf hebben gecontroleerd. In de reflectie beschrijven we hoe we GenAI hebben gebruikt. Feedback geven we eerlijk en respectvol, gericht op het werk en niet op de persoon."));
   out.push(new Paragraph({ children: [], spacing: { after: 200 } }));
   out.push(kop("Ondertekening"));
   out.push(table(["Naam", "Datum", "Handtekening"], [

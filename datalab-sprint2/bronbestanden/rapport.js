@@ -29,23 +29,16 @@ function bijlageA() {
     out.push(new Paragraph({ children: [new TextRun({ text: "Conclusie: ", bold: true, size: 19 }), new TextRun({ text: b.con, bold: true, size: 19 })], spacing: { before: 40, after: 160 } }));
   });
   out.push(H2("Samenvattende analyse van de betrouwbaarheid"));
-  out.push(P("De 44 bronnen in dit rapport verschillen sterk in betrouwbaarheid, en we hebben ze daarom ook verschillend gebruikt. De **kern van het rapport rust op primaire, onafhankelijke bronnen**: de CBS-dataset en CBS-publicaties (cijfers over prijzen, hernieuwbare energie en aardgasvrije woningen), de AVG-wettekst, de ACM, de Rijksoverheid, RVO en het PBL. Deze bronnen scoren op bijna alle letters een 4 of 5 en hebben geen commercieel belang bij de uitkomst. Alle harde cijfers in de hoofdstukken 3 en 4 komen uit deze groep."));
-  out.push(P("Een **tweede groep bestaat uit bronnen van de sector zelf**: Enexis, Netbeheer Nederland, Energie-Nederland, de leveranciers (Essent, Engie, Vattenfall, Pure Energie) en de vakmedia Solar Magazine en Duurzaam Ondernemen. Deze bronnen zijn deskundig en meestal nauwkeurig, maar scoren lager op Purpose: zij informeren én profileren. Wij hebben de cijfers daaruit waar mogelijk gecontroleerd met een tweede bron (bijvoorbeeld de wachtlijstcijfers bij Netbeheer Nederland én Duurzaam Ondernemen, de bijmengverplichting bij Engie én Vattenfall) en uitspraken geformuleerd als \"Enexis stelt dat\"."));
-  out.push(P("De **zwakste groep zijn de commerciële vergelijkingssites** (Keuze.nl, Overstappen.nl, Selectra, Energievergelijk). Zij scoren laag op Authority en Purpose omdat zij verdienen aan overstappende klanten. We hebben ze alleen gebruikt voor eenvoudige, controleerbare feiten (klantaantallen, het aantal vergunningen, de uitleg van de energierekening) en nooit als enige bron voor een conclusie. Hetzelfde geldt voor de milieuorganisaties (Greenpeace et al., WISE, BNNVARA): zij zijn deskundig en transparant over hun methode, maar hebben een duidelijk standpunt. Hun scores hebben we daarom naast de wettelijk verplichte stroometiketten gelegd."));
+  out.push(P("De bronnen in dit rapport verschillen sterk in betrouwbaarheid, en we hebben ze daarom ook verschillend gebruikt. De **kern van het rapport rust op primaire, onafhankelijke bronnen**: de CBS-dataset en CBS-publicaties (cijfers over prijzen, hernieuwbare energie en aardgasvrije woningen), de AVG-wettekst, de ACM, de Rijksoverheid, RVO en het PBL. Deze bronnen scoren op bijna alle letters een 4 of 5 en hebben geen commercieel belang bij de uitkomst. Alle harde cijfers in de hoofdstukken 3 en 4 komen uit deze groep."));
+  out.push(P("Een **tweede groep bestaat uit bronnen van de sector zelf**: Enexis, Netbeheer Nederland, Energie-Nederland, de leveranciers (Essent, Engie, Pure Energie) en het vakblad Solar Magazine. Deze bronnen zijn deskundig en meestal nauwkeurig, maar scoren lager op Purpose: zij informeren én profileren. Wij hebben de cijfers daaruit waar mogelijk gecontroleerd met een tweede bron en uitspraken geformuleerd als \"Enexis stelt dat\"."));
+  out.push(P("De **zwakste groep zijn de commerciële vergelijkingssites** (Keuze.nl, Selectra, Energievergelijk). Zij scoren laag op Authority en Purpose omdat zij verdienen aan overstappende klanten. We hebben ze alleen gebruikt voor eenvoudige, controleerbare feiten (klantaantallen, het aantal vergunningen, de uitleg van de energierekening) en nooit als enige bron voor een conclusie. Hetzelfde geldt voor de milieuorganisaties (Greenpeace et al., WISE): zij zijn deskundig en transparant over hun methode, maar hebben een duidelijk standpunt. Hun scores hebben we daarom naast de wettelijk verplichte stroometiketten gelegd."));
   out.push(P("Het grootste aandachtspunt is **actualiteit**: de laatste volledige Groene Stroom Ranglijst is uit 2022 en de CBS-tarieventabel stopt in 2023. Voor de opdracht (het jaar 2022) is dat geen probleem, maar voor de leveranciersvergelijking hebben we de ranking aangevuld met stroometiketten en een analyse uit 2025. Over het geheel genomen is de bronnenbasis van dit rapport betrouwbaar: elke conclusie steunt op minstens één onafhankelijke bron, en bronnen met een belang zijn als zodanig benoemd."));
   return out;
 }
 
-function bijlageB() {
-  const code = fs.readFileSync(__dirname + "/energieprijzen_2022.py", "utf8").split("\n");
-  const out = [new Paragraph({ children: [new TextRun({ text: "Bijlage B: Python-code voor figuur 1", bold: true, color: C.navy, size: 36, font: "Calibri Light" })], spacing: { before: 360, after: 120 }, pageBreakBefore: true })];
-  out.push(P("De grafiek in paragraaf 3.2 is gemaakt met Python 3, pandas en matplotlib. De maandwaarden zijn handmatig overgenomen uit StatLine-tabel 84672NED (CBS, 2023a), omdat de CBS-API vanuit onze werkomgeving niet bereikbaar was. Het script schrijft ook het CSV-bestand *energietarieven_2022.csv* weg, zodat de data herbruikbaar is in de volgende sprint."));
-  code.forEach((line) => out.push(new Paragraph({ children: [new TextRun({ text: line || " ", font: "Consolas", size: 15 })], spacing: { after: 0, line: 240 }, shading: { type: d.ShadingType.CLEAR, color: "auto", fill: "F4F4F2" } })));
-  return out;
-}
 
 function bijlageC() {
-  const out = [new Paragraph({ children: [new TextRun({ text: "Bijlage C: Ingevulde Checklist Rapporteren", bold: true, color: C.navy, size: 36, font: "Calibri Light" })], spacing: { before: 360, after: 120 }, pageBreakBefore: true })];
+  const out = [new Paragraph({ children: [new TextRun({ text: "Bijlage B: Ingevulde Checklist Rapporteren", bold: true, color: C.navy, size: 36, font: "Calibri Light" })], spacing: { before: 360, after: 120 }, pageBreakBefore: true })];
   out.push(P("We hebben het rapport gecontroleerd met de Checklist Rapporteren van de opleiding. Per element staat of het aanwezig is en waar het te vinden is."));
   const rows = [
     ["Omslag en titelpagina", "Titel (en evt. ondertitel) dekt (dekken) de lading", "Ja", "\"Onderzoek de Nederlandse energiemarkt\" met ondertitel over Enexis"],
@@ -59,24 +52,24 @@ function bijlageC() {
     ["", "Titels kernachtig geformuleerd", "Ja", "Korte titels, deels als vraag"],
     ["", "Lijst van gebruikte afkortingen en symbolen (evt.)", "N.v.t.", "Afkortingen (ACM, AVG, AP, GW, MW, TTF) worden bij eerste gebruik uitgeschreven"],
     ["", "Literatuurlijst (heeft geen hoofdstuknr.!)", "Ja", "Literatuurlijst zonder nummer, na hoofdstuk 6"],
-    ["", "Bijlagen met nummer en titel (heeft geen hoofdstuknr.!)", "Ja", "Bijlage A, B en C met titel, zonder hoofdstuknummer"],
+    ["", "Bijlagen met nummer en titel (heeft geen hoofdstuknr.!)", "Ja", "Bijlage A en B met titel, zonder hoofdstuknummer"],
     ["", "Paginanummering", "Ja", "Voettekst \"Pagina X\""],
     ["Kern", "De kern volgt een logische structuur", "Ja", "Volgorde van het rapporttemplate: markt, prijs en capaciteit, duurzaamheid, organisatie, conclusies"],
     ["", "Eén onderwerp per alinea", "Ja", "Gecontroleerd per hoofdstuk"],
     ["", "Alinea's bevatten duidelijke kernzin", "Ja", "Kernzin vooraan, vaak vetgedrukt"],
     ["", "Argumentatie op orde", "Ja", "Elke conclusie steunt op cijfers met bronvermelding"],
     ["", "Rapportindeling volgens inhoudsopgave", "Ja", "Inhoudsopgave is automatisch gegenereerd uit de koppen"],
-    ["", "Verwijzingen naar bijlagen aanwezig (evt.)", "Ja", "Verwijzingen in hoofdstuk 1, 3.2 en bijlage A"],
+    ["", "Verwijzingen naar bijlagen aanwezig (evt.)", "Ja", "Verwijzingen in hoofdstuk 1 en in bijlage A"],
     ["", "Volgens richtlijnen APA", "Ja", "In de tekst (auteur, jaar) en alfabetische literatuurlijst"],
     ["Bijlagen", "Zelfstandig leesbaar", "Ja", "Elke bijlage begint met een korte inleiding"],
     ["Algemeen", "Het eindproduct is goed verzorgd (lay-out en wijze van aanleveren)", "Ja", "Huisstijl van sprint 1; aangeleverd als Word-document via Brightspace"],
     ["", "Publieksgericht: begrijpelijk en leesbaar voor de doelgroep", "Ja", "Geschreven voor de directie van Enexis en de coaches; vaktermen uitgelegd"],
-    ["", "Publieksgericht: vormgeving aangepast aan de doelgroep", "Ja", "Tabellen en één grafiek voor overzicht"],
+    ["", "Publieksgericht: vormgeving aangepast aan de doelgroep", "Ja", "Tabellen en een Excel-grafiek voor overzicht"],
     ["", "Spelling correct", "Ja", "Spellingscontrole uitgevoerd"],
     ["", "Taalkundig correct", "Ja", "Door twee groepsleden nagelezen"],
   ];
   out.push(table(["Onderdeel", "Element", "Aanwezig", "Waar / toelichting"], rows, [1700, 3600, 900, 3432], { size: 17, firstBold: true }));
-  out.push(Caption("Tabel C.1. Ingevulde Checklist Rapporteren."));
+  out.push(Caption("Tabel B.1. Ingevulde Checklist Rapporteren."));
   return out;
 }
 
@@ -101,7 +94,7 @@ function bijlageC() {
     ],
   });
   const front = [...coverParas, Break(), ...toc(), Break()];
-  const body = [...deel1, ...deel2, ...literatuurlijst(), ...bijlageA(), ...bijlageB(), ...bijlageC()];
+  const body = [...deel1, ...deel2, ...literatuurlijst(), ...bijlageA(), ...bijlageC()];
   const document = doc({ headerText: "Datalab 1 | Sprint 2 | Onderzoek de Nederlandse energiemarkt", sections: [[...front, ...body]] });
   await save(document, OUT + "Datalab1_Sprint2_Rapport_Energiemarkt_Enexis.docx");
 })();
