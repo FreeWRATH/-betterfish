@@ -92,7 +92,7 @@ function bijlageC() {
       "Klas ADSAI-DH-1.A · Groep 3 · Coach: Onur Tezel",
       "Opdrachtgever (casus): Enexis Netbeheer",
       "",
-      "Joshua Ferreira ([studentnummer])",
+      "Joshua Ferreira (26108569)",
       "Mohamed Badr el Din (19096135)",
       "Redouan Afkir (26145529)",
       "Jemairo van Rey (26159414)",

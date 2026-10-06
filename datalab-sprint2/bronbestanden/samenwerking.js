@@ -17,7 +17,7 @@ function kop(t) { return new Paragraph({ children: [new TextRun({ text: t, bold:
     ["1.", "Jemairo van Rey (26159414)"],
     ["2.", "Redouan Afkir (26145529)"],
     ["3.", "Mohamed Badr el Din (19096135)"],
-    ["4.", "Joshua Ferreira ([studentnummer])"],
+    ["4.", "Joshua Ferreira (26108569)"],
     ["Datum:", "29-09-2026"],
   ]));
   out.push(new Paragraph({ children: [], spacing: { after: 120 } }));

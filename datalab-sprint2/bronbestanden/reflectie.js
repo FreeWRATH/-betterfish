@@ -8,7 +8,7 @@ const OUT = "/home/user/-betterfish/datalab-sprint2/";
     kicker: "DATALAB 1 · SPRINT 1 EN 2",
     title: "Reflectie en GenAI-impactevaluatie",
     subtitle: "Groepsproces, peer-feedback en gebruik van generatieve AI",
-    lines: ["De Haagse Hogeschool · Applied Data Science & AI", "Klas ADSAI-DH-1.A · Groep 3 · Coach: Onur Tezel", "", "Joshua Ferreira ([studentnummer])", "Mohamed Badr el Din (19096135)", "Redouan Afkir (26145529)", "Jemairo van Rey (26159414)", "", "Den Haag, 6 oktober 2026"],
+    lines: ["De Haagse Hogeschool · Applied Data Science & AI", "Klas ADSAI-DH-1.A · Groep 3 · Coach: Onur Tezel", "", "Joshua Ferreira (26108569)", "Mohamed Badr el Din (19096135)", "Redouan Afkir (26145529)", "Jemairo van Rey (26159414)", "", "Den Haag, 6 oktober 2026"],
   }));
   out.push(Break());
 
