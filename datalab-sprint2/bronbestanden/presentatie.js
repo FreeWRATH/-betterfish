@@ -80,7 +80,7 @@ s = content("Introductie", "Opbouw van deze presentatie");
 const blocks = [
   ["Introductie", "3,5 min", "Onderzoeksmethode en CRAAP\nWie is Enexis?\nEnexis in de energiemarkt"],
   ["Bedrijfsmodel", "3 min", "Volledig BMC\nKernactiviteiten\nBelangrijkste partners"],
-  ["Analyse", "6 min", "Hypothese en prijsopbouw\nTwee datavragen met grafiek\nCapaciteit, duurzaamheid en privacy"],
+  ["Analyse", "6 min", "Activiteiten, data en hypothese\nTwee datavragen met grafiek\nCapaciteit, duurzaamheid en privacy"],
   ["Conclusie", "2,5 min", "Conclusie en advies\nVragen voor de gastspreker\nSamenwerking en GenAI"],
 ];
 blocks.forEach(([t, min, items], i) => {
@@ -266,8 +266,37 @@ parts.forEach(([t, r, ex], i) => {
 source(s, "Bronnen: eigen Business Model Canvas (sprint 1); Enexis Groep (2026); Solar Magazine (2026b); RVO (2022)");
 s.addNotes("TIJD: 5:15-6:30.\nTweede bouwsteen: partners. Geef bij elke partner het concrete voorbeeld. TenneT: Enexis kan in Brabant en Limburg pas verder als TenneT capaciteit vrijgeeft. Gemeenten: bepalen via de Transitievisie Warmte welke wijk van het gas af gaat. Leveranciers: innen het geld voor Enexis. Aannemers: voeren het werk uit. Kernboodschap: Enexis is afhankelijk van partners om het net sneller uit te breiden.");
 
-// ================= SLIDE 8: hypothese (groen, zoals sprint 1)
+// ================= Activiteiten en data (sprint 1)
 pres.addSection({ title: "Analyse" });
+s = content("Analyse", "Activiteiten van Enexis en de bijbehorende data");
+T(s, "Uit sprint 1: wat Enexis doet en welke data daarbij hoort. Wat niet online stond, hebben we zelf ingeschat.", { x: MX, y: 1.35, w: 11.8, h: 0.4, fontSize: 16 });
+const acts1 = [
+  ["Energieverbruik per postcode publiceren", "Per postcode: aansluitingen, jaarverbruik (kWh en m³), % slimme meter, % teruglevering", "CSV, open data op de site", "Zeker", "Staat online"],
+  ["Slimme meters uitlezen", "Meterstanden: stroom per kwartier, gas per uur", "Grote database per meter en tijdstip", "Deels", "Vorm is onze aanname"],
+  ["Storingen bijhouden en oplossen", "Begin, einde, locatie, oorzaak, aantal getroffen klanten; uitvalduur 2025: 18,8 min", "Storingsdatabase en storingskaart", "Deels", "Kolommen eigen idee"],
+  ["Wachtlijst voor netcapaciteit", "Ruim 10.000 aanvragen (6.000+ afname, 4.000+ teruglevering): datum, vermogen, station", "Tabel en online capaciteitskaart", "Zeker", "Uit jaarverslag"],
+  ["Foto's bij inspecties", "Foto's van roest of schade aan stations en kabels, met datum en locatie", "Afbeeldingen met datum en locatie", "Aanname", "Niets over gevonden"],
+];
+const H2c = (t) => ({ text: t, options: { bold: true, color: "FFFFFF", fill: { color: HEX.navy }, fontSize: 13 } });
+const statusCol = { Zeker: HEX.green, Deels: HEX.amberDark, Aanname: "B23A36" };
+const arows = [[H2c("Nr"), H2c("Activiteit"), H2c("Welke data"), H2c("Vorm"), H2c("Zeker of aanname?")]];
+acts1.forEach(([a, d, v, st, why], i) => {
+  const fill = { color: i % 2 ? "F6F8FA" : "FFFFFF" };
+  arows.push([
+    { text: String(i + 1), options: { align: "center", color: HEX.body, fill } },
+    { text: a, options: { bold: true, color: HEX.ink, fill } },
+    { text: d, options: { color: HEX.body, fill } },
+    { text: v, options: { color: HEX.body, fill } },
+    { text: [{ text: st, options: { bold: true, color: statusCol[st], breakLine: true } }, { text: why, options: { color: HEX.body } }], options: { fill } },
+  ]);
+});
+s.addTable(arows, { x: MX, y: 1.9, w: 11.83, colW: [0.5, 2.6, 4.4, 2.43, 1.9], rowH: [0.4, 0.7, 0.7, 0.7, 0.7, 0.7], fontFace: "Calibri", fontSize: 13, valign: "middle", margin: [0.03, 0.1, 0.03, 0.1], border: { type: "solid", color: "E3E8EE", pt: 0.75 }, objectName: "activiteiten tabel" });
+card(s, MX, 6.12, 11.8, 0.66, "balans data", C.text2);
+T(s, "Balans: 2 activiteiten met data die zeker bestaat, 2 deels, 1 aanname. Activiteit 1 is de data die we nodig hebben om onze hypothese te toetsen.", { x: MX + 0.35, y: 6.12, w: 11.1, h: 0.66, fontSize: 14, color: C.background1, valign: "middle" });
+source(s, "Bronnen: Enexis Netbeheer (2022, 2026, z.d.); Netbeheer Nederland (z.d.). Uit ons sprint 1-rapport, hoofdstuk 5");
+s.addNotes("TIJD: 6:30-7:00.\nUit sprint 1: vijf activiteiten van Enexis en de data die daarbij hoort. Benoem de balans: twee zeker (staat online of in het jaarverslag), twee deels (dat het bestaat weten we, de vorm hebben we ingeschat) en een aanname. Activiteit 1, energieverbruik per postcode, is de data voor onze hypothese op de volgende slide.");
+
+// ================= SLIDE 8: hypothese (groen, zoals sprint 1)
 s = pres.addSlide({ masterName: "CONTENT_GREEN", sectionTitle: "Analyse" });
 label(s, "Onze hypothese uit sprint 1", MX, 0.6, 6, C.accent2);
 s.addText("Postcodegebieden met bedrijfsterrein verbruiken het meest, woongebieden gemiddeld en natuurlijk terrein het minst", { placeholder: "title" });
@@ -282,7 +311,7 @@ card(s, 10.25, 3.05, 2.33, 3.25, "data om te toetsen", "15594A");
 label(s, "Data om te toetsen", 10.5, 3.25, 1.9, C.accent2);
 T(s, "Open data van Enexis per postcode, gekoppeld aan CBS-buurtcijfers over het soort gebied", { x: 10.5, y: 3.6, w: 1.9, h: 2.5, fontSize: 14, color: C.background1 });
 source(s, "Illustratieve rangorde van onze verwachting, geen meetwaarden. Bronnen: CBS (2025, 2026); Enexis Netbeheer (2022)", "C9DCD4");
-s.addNotes("TIJD: 6:30-7:00.\nDit is onze hypothese uit sprint 1, de basis van ons datavraagstuk. De balken zijn onze verwachting, geen metingen. Toetsen kan met de open data van Enexis per postcode, gekoppeld aan CBS-buurtcijfers over het soort gebied. Dit sluit aan op advies 1 later: voorspellen waar het net vol loopt.");
+s.addNotes("TIJD: 7:00-7:20.\nDit is onze hypothese uit sprint 1, de basis van ons datavraagstuk. De balken zijn onze verwachting, geen metingen. Toetsen kan met de open data van Enexis per postcode, gekoppeld aan CBS-buurtcijfers over het soort gebied. Dit sluit aan op advies 1 later: voorspellen waar het net vol loopt.");
 
 // ================= SLIDE 9: prijsopbouw
 s = content("Analyse", "Uit welke delen bestaat de energierekening?");
@@ -305,7 +334,7 @@ parts9.forEach(([t, who, d], i) => {
 card(s, MX, 5.7, 11.8, 0.85, "kernboodschap prijs", C.text2);
 T(s, "Gevolg: als de energieprijs stijgt, verdient Enexis daar niets aan. Wel stijgt de vraag naar zonnepanelen en warmtepompen, en daarmee de druk op het net.", { x: MX + 0.35, y: 5.7, w: 11.1, h: 0.85, fontSize: 15, color: C.background1, valign: "middle" });
 source(s, "Bron: Selectra (z.d.)");
-s.addNotes("TIJD: 7:00-7:30.\nVier onderdelen: levering, netbeheer, energiebelasting en btw. Alleen het tweede deel gaat naar Enexis, en dat tarief zet de ACM vast. Brug naar de volgende slide: wat gebeurde er met de leveringsprijs in 2022?");
+s.addNotes("TIJD: 7:20-7:45.\nVier onderdelen: levering, netbeheer, energiebelasting en btw. Alleen het tweede deel gaat naar Enexis, en dat tarief zet de ACM vast. Brug naar de volgende slide: wat gebeurde er met de leveringsprijs in 2022?");
 
 // ================= SLIDE 10: datavraag 1
 s = content("Analyse", "Datavraag 1: hoe verliep de energieprijs in 2022?");
@@ -333,7 +362,7 @@ why.forEach(([d, t], i) => {
   T(s, t, { x: x + 0.2, y: y + 0.4, w: w - 0.4, h: 0.55, fontSize: 12 });
 });
 source(s, "Bron: CBS (2023a), tabel 84672NED, gemiddeld tarief nieuwe variabele contracten incl. btw; eigen grafiek in Excel. Oorzaken: Consumentenbond (2022); Pure Energie (z.d.-a)");
-s.addNotes("TIJD: 7:30-8:50.\nDatavraag 1. Lees eerst het antwoord bovenaan voor. Gas ging van 1,20 euro in januari naar 2,78 euro per m3 in oktober, stroom van 0,32 naar 0,66 euro per kWh. Stroom volgt gas omdat gascentrales vaak de stroomprijs bepalen. Loop de vier oorzaken onderaan langs. Let op: vanaf november gebruikt het CBS een nieuwe meetmethode, daarom zijn november en december gelijk. De data en grafiek staan ook in ons Excel-bestand.");
+s.addNotes("TIJD: 7:45-9:00.\nDatavraag 1. Lees eerst het antwoord bovenaan voor. Gas ging van 1,20 euro in januari naar 2,78 euro per m3 in oktober, stroom van 0,32 naar 0,66 euro per kWh. Stroom volgt gas omdat gascentrales vaak de stroomprijs bepalen. Loop de vier oorzaken onderaan langs. Let op: vanaf november gebruikt het CBS een nieuwe meetmethode, daarom zijn november en december gelijk. De data en grafiek staan ook in ons Excel-bestand.");
 
 // ================= SLIDE 11: datavraag 2
 s = content("Analyse", "Datavraag 2: hoe vaak is er te veel stroom op het net?");
@@ -354,7 +383,7 @@ card(s, 8.55, 4.4, 4.03, 2.3, "tegelijk te weinig ruimte", C.text2);
 label(s, "En tegelijk te weinig ruimte", 8.85, 4.6, 3.5, C.accent2);
 T(s, [{ text: "15.014", options: { fontFace: "Cambria", bold: true, fontSize: 30, color: C.background1, breakLine: true } }, { text: "bedrijven wachten op een aansluiting voor afname (eind 2025)", options: { fontSize: 14, color: "C9D3DE" } }], { x: 8.85, y: 4.95, w: 3.45, h: 1.6 });
 source(s, "Bronnen: Solar Magazine (2026a); Netbeheer Nederland (z.d.)");
-s.addNotes("TIJD: 8:50-10:00.\nDatavraag 2. Lees het antwoord voor: van 85 uur in 2022 naar 581 uur in 2025, ongeveer 7% van het jaar. Dat is overcapaciteit: te veel stroom op hetzelfde moment. Tegelijk is er ondercapaciteit: ruim 15.000 bedrijven wachten op een aansluiting. Het net zit dus op sommige momenten en plekken vol, en op andere momenten is er te veel stroom. Dat is de kern van het probleem van Enexis.");
+s.addNotes("TIJD: 9:00-10:05.\nDatavraag 2. Lees het antwoord voor: van 85 uur in 2022 naar 581 uur in 2025, ongeveer 7% van het jaar. Dat is overcapaciteit: te veel stroom op hetzelfde moment. Tegelijk is er ondercapaciteit: ruim 15.000 bedrijven wachten op een aansluiting. Het net zit dus op sommige momenten en plekken vol, en op andere momenten is er te veel stroom. Dat is de kern van het probleem van Enexis.");
 
 // ================= SLIDE 12: maatregelen
 s = content("Analyse", "Hoe gaan netbeheerders en leveranciers hiermee om?");
@@ -374,7 +403,7 @@ maat.forEach(([n, t, d], i) => {
   T(s, [{ text: t, options: { bold: true, color: C.text2, breakLine: true } }, { text: d }], { x: 7.75, y, w: 4.85, h: 1.0, fontSize: 14, valign: "middle" });
 });
 source(s, "Bronnen: Enexis Groep (2025, 2026); Netbeheer Nederland (z.d.); Solar Magazine (2026a, 2026b)");
-s.addNotes("TIJD: 10:00-10:45.\nHet probleem speelt het sterkst in de provincies van Enexis. Netbeheerders verzwaren het net, maar dat gaat niet snel genoeg. Daarom ook slimme oplossingen: congestiemanagement, batterijen en dynamische contracten via de leveranciers.");
+s.addNotes("TIJD: 10:05-10:45.\nHet probleem speelt het sterkst in de provincies van Enexis. Netbeheerders verzwaren het net, maar dat gaat niet snel genoeg. Daarom ook slimme oplossingen: congestiemanagement, batterijen en dynamische contracten via de leveranciers.");
 
 // ================= SLIDE 13: duurzaamheid
 s = content("Analyse", "Groener, maar te langzaam van het gas af");
